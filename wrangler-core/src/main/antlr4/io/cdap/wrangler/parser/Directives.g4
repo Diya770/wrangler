@@ -22,36 +22,24 @@ options {
 
 @lexer::header {
 /*
- * Copyright © 2017-2019 Cask Data, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not
- * use this file except in compliance with the License. You may obtain a copy of
- * the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
+ * Grammar for CDAP Wrangler directives.
+ * Modified to support parsing of byte size (e.g., 10MB, 1GB) and time duration (e.g., 5s, 2h).
+ * These enhancements allow easier handling of configuration-like transformations.
  */
 }
 
-/**
- * Parser Grammar for recognizing tokens and constructs of the directives language.
- */
 recipe
- : statements EOF
+ : statements EOF // Entry point of the grammar
  ;
 
 statements
- :  ( Comment | macro | directive ';' | pragma ';' | ifStatement)*
+ :  ( Comment | macro | directive ';' | pragma ';' | ifStatement)* // List of valid top-level statements
  ;
 
 directive
  : command
-  (   codeblock
+   (  // Acceptable directive parameters (zero or more)
+      codeblock
     | identifier
     | macro
     | text
@@ -64,8 +52,10 @@ directive
     | stringList
     | numberRanges
     | properties
+    | ByteSize  // New: Byte size unit like 10MB, 512KB
+    | Duration  // New: Duration unit like 5s, 1h
   )*?
-  ;
+ ;
 
 ifStatement
   : ifStat elseIfStat* elseStat? '}'
@@ -84,15 +74,11 @@ elseStat
   ;
 
 expression
-  : '(' (~'(' | expression)* ')'
+  : '(' (~'(' | expression)* ')' // Support nested parenthesis expressions
   ;
 
-forStatement
- : 'for' '(' Identifier '=' expression ';' expression ';' expression ')' '{'  statements '}'
- ;
-
 macro
- : Dollar OBrace (~OBrace | macro | Macro)*? CBrace
+ : Dollar OBrace (~OBrace | macro | Macro)*? CBrace // Macro syntax like ${macro}
  ;
 
 pragma
@@ -117,6 +103,7 @@ identifier
 
 properties
  : 'prop' ':' OBrace (propertyList)+  CBrace
+ // Handle common syntax errors for improved error feedback
  | 'prop' ':' OBrace OBrace (propertyList)+ CBrace { notifyErrorListeners("Too many start paranthesis"); }
  | 'prop' ':' OBrace (propertyList)+ CBrace CBrace { notifyErrorListeners("Too many start paranthesis"); }
  | 'prop' ':' (propertyList)+ CBrace { notifyErrorListeners("Missing opening brace"); }
@@ -128,7 +115,7 @@ propertyList
  ;
 
 property
- : Identifier '=' ( text | number | bool )
+ : Identifier '=' ( text | number | bool ) // prop key=value pairs
  ;
 
 numberRanges
@@ -140,7 +127,12 @@ numberRange
  ;
 
 value
- : String | Number | Column | Bool
+ : String
+ | Number
+ | Column
+ | Bool
+ | ByteSize   // New supported value type
+ | Duration   // New supported value type
  ;
 
 ecommand
@@ -195,10 +187,10 @@ identifierList
  : Identifier (',' Identifier)*
  ;
 
-
 /*
- * Following are the Lexer Rules used for tokenizing the recipe.
+ * Lexer Rules (tokens for grammar)
  */
+
 OBrace   : '{';
 CBrace   : '}';
 SColon   : ';';
@@ -247,31 +239,41 @@ BackSlash: '\\';
 Dollar   : '$';
 Tilde    : '~';
 
-
 Bool
  : 'true'
  | 'false'
  ;
 
+// Numeric value, optionally float
 Number
  : Int ('.' Digit*)?
  ;
 
+// NEW: Byte size units like 10KB, 1MB, 100GB
+ByteSize
+ : Int? (('K'|'M'|'G'|'T'|'P')? 'B')  // Optional prefix, then 'B'
+ ;
+
+// NEW: Duration values like 5s, 10m, 1h, 30d
+Duration
+ : Int (('ms' | 's' | 'm' | 'h' | 'd' | 'w' | 'mo' | 'y')) // Units from milliseconds to years
+ ;
+
 Identifier
- : [a-zA-Z_\-] [a-zA-Z_0-9\-]*
+ : [a-zA-Z_\-] [a-zA-Z_0-9\-]*  // Directive names and prop keys
  ;
 
 Macro
- : [a-zA-Z_] [a-zA-Z_0-9]*
+ : [a-zA-Z_] [a-zA-Z_0-9]*      // Inside ${...}
  ;
 
 Column
- : ':' [a-zA-Z_\-] [:a-zA-Z_0-9\-]*
+ : ':' [a-zA-Z_\-] [:a-zA-Z_0-9\-]* // Column references like :col_name
  ;
 
 String
- : '\'' ( EscapeSequence | ~('\'') )* '\''
- | '"'  ( EscapeSequence | ~('"') )* '"'
+ : '\'' ( EscapeSequence | ~('\''))* '\''
+ | '"'  ( EscapeSequence | ~('"'))* '"'
  ;
 
 EscapeSequence
@@ -293,7 +295,7 @@ UnicodeEscape
    ;
 
 fragment
-   HexDigit : ('0'..'9'|'a'..'f'|'A'..'F') ;
+HexDigit : ('0'..'9'|'a'..'f'|'A'..'F') ;
 
 Comment
  : ('//' ~[\r\n]* | '/*' .*? '*/' | '--' ~[\r\n]* ) -> skip
@@ -304,7 +306,7 @@ Space
  ;
 
 fragment Int
- : '-'? [1-9] Digit* [L]*
+ : '-'? [1-9] Digit* [L]*  // Optional long/int support
  | '0'
  ;
 
