@@ -14,6 +14,7 @@
  * the License.
  */
 
+
 package io.cdap.wrangler.parser;
 
 import io.cdap.wrangler.api.LazyNumber;
@@ -22,6 +23,7 @@ import io.cdap.wrangler.api.SourceInfo;
 import io.cdap.wrangler.api.Triplet;
 import io.cdap.wrangler.api.parser.Bool;
 import io.cdap.wrangler.api.parser.BoolList;
+import io.cdap.wrangler.api.parser.ByteSize;
 import io.cdap.wrangler.api.parser.ColumnName;
 import io.cdap.wrangler.api.parser.ColumnNameList;
 import io.cdap.wrangler.api.parser.DirectiveName;
@@ -33,11 +35,16 @@ import io.cdap.wrangler.api.parser.Properties;
 import io.cdap.wrangler.api.parser.Ranges;
 import io.cdap.wrangler.api.parser.Text;
 import io.cdap.wrangler.api.parser.TextList;
+import io.cdap.wrangler.api.parser.TimeDuration;
 import io.cdap.wrangler.api.parser.Token;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
+
+import io.cdap.wrangler.api.parser.ByteSize;
+import io.cdap.wrangler.api.parser.TimeDuration;
+
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -326,4 +333,16 @@ public final class RecipeVisitor extends DirectivesBaseVisitor<RecipeSymbol.Buil
     int column = ctx.getStart().getCharPositionInLine();
     return new SourceInfo(lineno, column, text);
   }
+
+  @Override
+public Token visitByteSizeArg(DirectiveParser.ByteSizeArgContext ctx) {
+    String text = ctx.getText(); // e.g., "10MB"
+    return new ByteSize(text);   // create a ByteSize token
+}
+
+@Override
+public Token visitTimeDurationArg(DirectiveParser.TimeDurationArgContext ctx) {
+    String text = ctx.getText(); // e.g., "500ms"
+    return new TimeDuration(text); // create a TimeDuration token
+}
 }
