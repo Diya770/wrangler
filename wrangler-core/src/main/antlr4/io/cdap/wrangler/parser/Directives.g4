@@ -259,6 +259,13 @@ Duration
  : Int (('ms' | 's' | 'm' | 'h' | 'd' | 'w' | 'mo' | 'y')) // Units from milliseconds to years
  ;
 
+BYTE_SIZE : DIGIT+ ('.' DIGIT+)? BYTE_UNIT ;
+TIME_DURATION : DIGIT+ ('.' DIGIT+)? TIME_UNIT ;
+
+fragment BYTE_UNIT : [KkMmGgTt][Bb] ;
+fragment TIME_UNIT : ('ms' | 's' | 'm' | 'h') ;
+
+
 Identifier
  : [a-zA-Z_\-] [a-zA-Z_0-9\-]*  // Directive names and prop keys
  ;

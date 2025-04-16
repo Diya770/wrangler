@@ -1,3 +1,16 @@
+
+### New Feature: Byte Size and Time Duration Parsing
+
+Wrangler now supports native parsing of units such as:
+
+- **Byte Sizes**: KB, MB, GB (e.g., "10KB", "1.5MB")
+- **Time Durations**: ms, s, m, h (e.g., "500ms", "2.5s")
+
+#### Usage
+
+
+
+
 # Data Prep
 
 ![cm-available](https://cdap-users.herokuapp.com/assets/cm-available.svg)
